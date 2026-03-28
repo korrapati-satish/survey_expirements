@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "phd-security-game"
+version = "0.1.0"
+description = "PhD-grade cybersecurity game theory experiment framework"
+readme = "README.md"
+requires-python = ">=3.10"
+authors = [
+  { name = "Researcher" }
+]
+dependencies = [
+  "numpy>=1.26",
+  "pandas>=2.2",
+  "nashpy>=0.0.41",
+  "gymnasium>=0.29",
+  "open_spiel>=1.5",
+  "pygambit>=16.2.0",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0"]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]

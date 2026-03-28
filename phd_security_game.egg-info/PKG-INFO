@@ -1,0 +1,106 @@
+Metadata-Version: 2.4
+Name: phd-security-game
+Version: 0.1.0
+Summary: PhD-grade cybersecurity game theory experiment framework
+Author: Researcher
+Requires-Python: >=3.10
+Description-Content-Type: text/markdown
+Requires-Dist: numpy>=1.26
+Requires-Dist: pandas>=2.2
+Requires-Dist: nashpy>=0.0.41
+Requires-Dist: gymnasium>=0.29
+Requires-Dist: open_spiel>=1.5
+Requires-Dist: pygambit>=16.2.0
+Provides-Extra: dev
+Requires-Dist: pytest>=8.0; extra == "dev"
+
+# PhD Security Game Experiment Project
+
+This project implements a research-grade cybersecurity game-theoretic experiment pipeline with:
+
+- Microsoft CyberBattleSim for attack-defense simulation
+- Gambit for normal-form and extensive-form game solving checks
+- OpenSpiel for reinforcement-learning strategy evaluation
+- NS-3 trace integration for network condition penalties
+
+Model backend defaults:
+
+- Stackelberg solver: Gambit
+- Evolutionary dynamics: Nashpy replicator dynamics
+
+Strategic action-space policy:
+
+- Stackelberg and evolutionary optimization are solved on attack actions only.
+- Benign actions are excluded from attacker best-response optimization.
+- FPR is computed against the empirical benign traffic mix from simulation traces.
+
+Simulation-data utilization policy:
+
+- The pipeline builds one empirical game per episode from CyberBattleSim traces.
+- Stackelberg and evolutionary outcomes are solved per episode and then aggregated.
+- Reported metrics are episode-aggregated values, preserving cross-episode heterogeneity.
+
+## Project Layout
+
+- `phd_security_game/config.py`: typed experiment configurations
+- `phd_security_game/simulators/cyberbattlesim_runner.py`: CyberBattleSim trace generation
+- `phd_security_game/simulators/ns3.py`: NS-3 trace loading and utility adjustment
+- `phd_security_game/data/build_game.py`: empirical game construction from traces
+- `phd_security_game/models/stackelberg.py`: Stackelberg leader-follower model
+- `phd_security_game/models/evolutionary.py`: dynamic evolutionary attacker adaptation
+- `phd_security_game/models/gambit_solver.py`: Gambit normal/extensive equilibrium checks
+- `phd_security_game/models/openspiel_eval.py`: OpenSpiel RL evaluation
+- `phd_security_game/metrics/security_metrics.py`: ADR/FPR/payoff metrics
+- `phd_security_game/pipeline/experiment_runner.py`: orchestration layer
+- `phd_security_game/cli.py`: command-line entrypoint
+- `security_game_experiment.py`: backward-compatible launcher
+- `tests/`: baseline unit tests
+
+## Run
+
+```bash
+python security_game_experiment.py --enable-gambit-checks --enable-openspiel-eval
+```
+
+Optional NS-3 integration:
+
+```bash
+python security_game_experiment.py --ns3-csv ns3_trace.csv
+```
+
+Accepted NS-3 CSV formats:
+
+1) Canonical format (fully explicit):
+
+- `episode`
+- `step`
+- `latency_ms`
+- `packet_loss_rate`
+- `jitter_ms`
+
+2) Common open-source ns-3 format aliases (auto-mapped):
+
+- `run`, `run_id` -> `episode`
+- `timestep`, `time_step`, `tick` -> `step`
+- `delay_ms`, `avg_delay_ms`, `mean_delay_ms` -> `latency_ms`
+- `jitter`, `avg_jitter_ms`, `mean_jitter_ms` -> `jitter_ms`
+- `packet_loss`, `loss_rate`, `plr`, `packet_loss_percent` -> `packet_loss_rate`
+
+3) If `step` is missing:
+
+- `time`, `time_s`, `time_ms`, `timestamp`, or `sim_time` is used to infer step order.
+
+4) If `episode` is missing:
+
+- one NS-3 trajectory is applied to all CyberBattleSim episodes by matching on `step`.
+
+5) If `packet_loss_rate` is missing:
+
+- it is derived automatically when either of these column pairs exists:
+	- `lost_packets` + `tx_packets`
+	- `lost_packets` + `rx_packets`
+	- `dropped_packets` + `tx_packets`
+
+Notes:
+
+- Packet loss values in percent (e.g., `2.5`) are auto-converted to rate (`0.025`).

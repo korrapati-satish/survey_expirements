@@ -1,0 +1,9 @@
+numpy>=1.26
+pandas>=2.2
+nashpy>=0.0.41
+gymnasium>=0.29
+open_spiel>=1.5
+pygambit>=16.2.0
+
+[dev]
+pytest>=8.0
