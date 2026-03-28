@@ -30,14 +30,25 @@ def _solve_stackelberg_lp(
     attacker_payoff: np.ndarray,
 ) -> tuple[np.ndarray, np.ndarray, float]:
     """
-    Solve Stackelberg with an LP per attacker action.
+    Computes a Strong Stackelberg Equilibrium (SSE) for a bimatrix game.
 
-    For each attacker action j, solve:
-        max_x      U_D(:, j)^T x
-        s.t.       x in simplex
-                   U_A(:, j)^T x >= U_A(:, k)^T x for all k
+    This function implements the "multiple-LP" approach, a standard method for solving
+    Stackelberg games where the leader (defender) can commit to a mixed strategy.
+    The core idea is to find the best possible defender strategy by anticipating the
+    attacker's best response.
 
-    The best feasible j yields a strong Stackelberg equilibrium under optimistic tie-breaking.
+    The algorithm iterates through each of the attacker's possible pure strategies,
+    assuming it is the attacker's best response. For each assumed attacker action `j`,
+    it solves a linear program (LP) to find the optimal defender mixed strategy `x` that
+    maximizes the defender's payoff, subject to two key constraints:
+    1. The defender's strategy `x` must be a valid probability distribution (sums to 1).
+    2. The strategy `x` must actually make action `j` a best response for the attacker.
+       This means the attacker's expected utility from playing `j` is at least as high
+       as their utility from playing any other action `k`.
+
+    After solving an LP for each possible attacker best response, the algorithm selects
+    the defender strategy and corresponding attacker response that yield the highest
+    defender payoff. This solution constitutes a Strong Stackelberg Equilibrium.
     """
     n_def, n_att = defender_payoff.shape
     best_value = -np.inf
@@ -140,29 +151,40 @@ def solve_stackelberg_security_game(
     method: Literal["lp", "gambit-pure"] = "lp",
 ) -> tuple[np.ndarray, np.ndarray, float]:
     """
-    Solve strong Stackelberg equilibrium using a bilevel-to-LP reduction.
+    Solves a security game from the defender's perspective using a Stackelberg model.
 
-    The defender is the leader and commits to a mixed strategy x.
-    For each attacker action j, solve the LP:
+    This function calculates the optimal strategy for a defender (the "leader") who can
+    commit to a strategy first, knowing that the attacker (the "follower") will observe
+    this commitment and choose their own best response. It supports two solution methods:
 
-    max_x      U_D(:, j)^T x
-    s.t.       x is a probability simplex
-               U_A(:, j)^T x >= U_A(:, k)^T x for all k
+    1.  **Mixed-Strategy Commitment (`lp` method):**
+        This is the default and most common approach for finding a Strong Stackelberg
+        Equilibrium (SSE). The defender can commit to a *mixed strategy* (a probability
+        distribution over their pure strategies). The function formulates this as a
+        bilevel optimization problem, which is then reduced to a series of linear
+        programs (LPs) and solved using `scipy.optimize.linprog`. This method guarantees
+        finding the optimal mixed-strategy commitment for the defender.
 
-    The best feasible j is selected (optimistic tie-breaking among follower best responses).
+    2.  **Pure-Strategy Commitment (`gambit-pure` method):**
+        In this simpler model, the defender is restricted to committing to a single
+        *pure strategy*. The function evaluates each possible pure commitment, determines
+        the attacker's best response to each, and selects the commitment that maximizes
+        the defender's payoff. This path also constructs an extensive-form game tree
+        using the `pygambit` library, which can be useful for visualization and
+        compatibility with other game theory tools.
 
-    method:
-    - "lp": mixed-leader strong Stackelberg equilibrium via LP (default)
-    - "gambit-pure": pure leader commitment with PyGambit extensive-form representation
-    
     Args:
-        defender_payoff: Shape (n_defender, n_attacker) payoff matrix
-        attacker_payoff: Shape (n_defender, n_attacker) payoff matrix
-        
+        defender_payoff: A 2D NumPy array of shape (n_defender_actions, n_attacker_actions)
+                         representing the defender's payoffs.
+        attacker_payoff: A 2D NumPy array of the same shape representing the attacker's payoffs.
+        method: The solution method to use ('lp' for mixed-strategy SSE or 'gambit-pure'
+                for pure-strategy commitment).
+
     Returns:
-        defender_sigma: Pure strategy as probability vector (one-hot)
-        attacker_sigma: Pure best-response as probability vector (one-hot)
-        defender_value: Defender's guaranteed payoff from Stackelberg commitment
+        A tuple containing:
+        - `defender_sigma`: The optimal strategy for the defender (as a probability vector).
+        - `attacker_sigma`: The attacker's best response to the defender's strategy.
+        - `defender_value`: The expected payoff for the defender in this equilibrium.
     """
     d_payoff, a_payoff = _validate_bimatrix(defender_payoff, attacker_payoff)
 

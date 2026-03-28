@@ -9,7 +9,7 @@ This project implements a research-grade cybersecurity game-theoretic experiment
 
 Model backend defaults:
 
-- Stackelberg solver: Gambit
+- Stackelberg solver: SciPy (linprog)
 - Evolutionary dynamics: Nashpy replicator dynamics
 
 Strategic action-space policy:
