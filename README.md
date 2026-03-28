@@ -37,19 +37,18 @@ Simulation-data utilization policy:
 - `phd_security_game/metrics/security_metrics.py`: ADR/FPR/payoff metrics
 - `phd_security_game/pipeline/experiment_runner.py`: orchestration layer
 - `phd_security_game/cli.py`: command-line entrypoint
-- `security_game_experiment.py`: backward-compatible launcher
 - `tests/`: baseline unit tests
 
 ## Run
 
 ```bash
-python security_game_experiment.py --enable-gambit-checks --enable-openspiel-eval
+python -m phd_security_game.cli --enable-gambit-checks --enable-openspiel-eval
 ```
 
 Optional NS-3 integration:
 
 ```bash
-python security_game_experiment.py --ns3-csv ns3_trace.csv
+python -m phd_security_game.cli --ns3-csv ns3_trace.csv
 ```
 
 Accepted NS-3 CSV formats:
